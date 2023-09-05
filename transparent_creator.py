@@ -79,8 +79,8 @@ if __name__ == "__main__":
             segmentation_result = segmenter.segment(image, roi)
             category_mask = segmentation_result.confidence_masks[0]
 
-            # Generate solid color images for showing the output segmentation mask.
             image_data = image.numpy_view()
+            # Generate solid color images for showing the output segmentation mask.
             # fg_image = np.zeros(image_data.shape, dtype=np.uint8)
             # fg_image[:] = MASK_COLOR
             # bg_image = np.zeros(image_data.shape, dtype=np.uint8)
@@ -92,6 +92,8 @@ if __name__ == "__main__":
             mask_int = mask.astype(np.uint8)
             cv_image = cv2.imread(filename)
             b_channel, g_channel, r_channel = cv2.split(cv_image)
+            if mask_int.shape[:-1] != b_channel.shape:
+                mask_int = np.swapaxes(mask_int, 0, 1)
             img_BGRA = cv2.merge((b_channel, g_channel, r_channel, mask_int))
             cv2.imwrite("output/{image_name}.png".format(image_name=filename[6:-4]), img_BGRA)
 
