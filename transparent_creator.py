@@ -39,7 +39,6 @@ def resize_and_show(image):
 
 
 if __name__ == "__main__":
-    # path
 
     # Height and width that will be used by the model
     DESIRED_HEIGHT = 480
@@ -50,10 +49,15 @@ if __name__ == "__main__":
     filenames = []
     [filenames.extend(glob.glob(path + '*.' + e)) for e in ext]
 
+    BG_COLOR = (192, 192, 192)  # gray
+    MASK_COLOR = (255, 255, 255)  # white
+    OVERLAY_COLOR = (100, 100, 0)  # cyan
+
     RegionOfInterest = vision.InteractiveSegmenterRegionOfInterest
     NormalizedKeypoint = containers.keypoint.NormalizedKeypoint
 
     # Create the options that will be used for InteractiveSegmenter
+    # base_options = python.BaseOptions(model_asset_path='magic_touch.tflite')
     base_options = python.BaseOptions(model_asset_path='models/magic_touch.tflite')
     options = vision.ImageSegmenterOptions(base_options=base_options,
                                            output_category_mask=True,
@@ -73,11 +77,22 @@ if __name__ == "__main__":
             roi = RegionOfInterest(format=RegionOfInterest.Format.KEYPOINT,
                                    keypoint=NormalizedKeypoint(x, y))
             segmentation_result = segmenter.segment(image, roi)
-            category_mask = segmentation_result.category_mask
-            mask = 255 - np.stack((category_mask.numpy_view(),), axis=-1)
+            category_mask = segmentation_result.confidence_masks[0]
+
+            # Generate solid color images for showing the output segmentation mask.
+            image_data = image.numpy_view()
+            # fg_image = np.zeros(image_data.shape, dtype=np.uint8)
+            # fg_image[:] = MASK_COLOR
+            # bg_image = np.zeros(image_data.shape, dtype=np.uint8)
+            # bg_image[:] = BG_COLOR
+            #
+            # condition = np.stack((category_mask.numpy_view(),) * 3, axis=-1) > 0.1
+            # output_image = np.where(condition, fg_image, bg_image)
+            mask = np.stack((category_mask.numpy_view(),), axis=-1)*255
+            mask_int = mask.astype(np.uint8)
             cv_image = cv2.imread(filename)
             b_channel, g_channel, r_channel = cv2.split(cv_image)
-            img_BGRA = cv2.merge((b_channel, g_channel, r_channel, mask))
+            img_BGRA = cv2.merge((b_channel, g_channel, r_channel, mask_int))
             cv2.imwrite("output/{image_name}.png".format(image_name=filename[6:-4]), img_BGRA)
 
             # # Draw a white dot with black border to denote the point of interest
@@ -85,4 +100,4 @@ if __name__ == "__main__":
             # keypoint_px = _normalized_to_pixel_coordinates(x, y, image.width, image.height)
             # cv2.circle(output_image, keypoint_px, thickness + 5, (0, 0, 0), radius)
             # cv2.circle(output_image, keypoint_px, thickness, (255, 255, 255), radius)
-            #
+
