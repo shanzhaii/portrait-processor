@@ -68,7 +68,7 @@ if __name__ == "__main__":
 
     # Create the interactive segmenter
     with vision.InteractiveSegmenter.create_from_options(options) as segmenter:
-        for filename in filenames[:1]:
+        for filename in filenames:
             # print(img[7:-4])
             # Create the MediaPipe image file that will be segmented
             image = mp.Image.create_from_file(filename)
