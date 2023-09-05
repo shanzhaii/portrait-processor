@@ -90,13 +90,17 @@ if __name__ == "__main__":
             # img_cv = cv2.imread(filename, cv2.IMREAD_ANYCOLOR)
             pil_img = ImageOps.exif_transpose(pil_img)
             img_array = np.asarray(pil_img)
-            image = mp.Image(image_format=mp.ImageFormat.SRGB, data=np.array(img_array[:,:,:3]))
+            # treat as image with transparency or not
+            if pil_img.mode == 'RGBA':
+                image = mp.Image(image_format=mp.ImageFormat.SRGBA, data=img_array)
+            else:
+                image = mp.Image(image_format=mp.ImageFormat.SRGB, data=img_array)
 
             # STEP 4: Detect face landmarks from the input image.
             detection_result = detector.detect(image)
 
             # STEP 5: Process the detection result. In this case, visualize it.
-            annotated_image = draw_landmarks_on_image(image.numpy_view(), detection_result)
+            annotated_image = draw_landmarks_on_image(image.numpy_view()[:,:,:3], detection_result)
             cv2.imshow(filename, cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR))
             cv2.waitKey(0)
 
