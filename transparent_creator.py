@@ -84,8 +84,8 @@ if __name__ == "__main__":
             mask_int = mask.astype(np.uint8)
             cv_image = cv2.imread(filename)
             b_channel, g_channel, r_channel = cv2.split(cv_image)
-            if mask_int.shape[:-1] != b_channel.shape:
-                mask_int = np.swapaxes(mask_int, 0, 1)
-            img_BGRA = cv2.merge((b_channel, g_channel, r_channel, mask_int))
+            alpha_channel = np.expand_dims(image_data[:,:,-1], axis=2)
+            alpha = np.minimum(alpha_channel, mask_int)
+            img_BGRA = cv2.merge((b_channel, g_channel, r_channel, alpha))
             image_name = filename.split("\\")[1].split(".")[0]
             cv2.imwrite("{path}/{image_name}.png".format(path=output_path, image_name=image_name), img_BGRA)
