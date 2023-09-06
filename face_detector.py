@@ -9,15 +9,16 @@ from mediapipe.tasks.python import vision
 import cv2
 import glob
 import math
+import os
 
 
-def resize_and_show(image):
+def resize_and_show(image, name):
     h, w = image.shape[:2]
     if h < w:
         img = cv2.resize(image, (DESIRED_WIDTH, math.floor(h / (w / DESIRED_WIDTH))))
     else:
         img = cv2.resize(image, (math.floor(w / (h / DESIRED_HEIGHT)), DESIRED_HEIGHT))
-    cv2.imshow('image', img)
+    cv2.imshow(name, img)
 
 
 def _normalized_to_pixel_coordinates(
@@ -51,8 +52,16 @@ if __name__ == "__main__":
 
     ext = ['png', 'jpg']
     path = 'input/'
+
     filenames = []
     [filenames.extend(glob.glob(path + '*.' + e)) for e in ext]
+
+    error = []
+
+    # create output path
+    output_path = 'cropped_images'
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
 
     # STEP 2: Create an FaceLandmarker object.
     base_options = python.BaseOptions(model_asset_path='models/face_landmarker.task')
@@ -78,8 +87,8 @@ if __name__ == "__main__":
             # annotated_image = draw_landmarks_on_image(image.numpy_view()[:,:,:3], detection_result) # can only draw on rgb images
             if len(detection_result.face_landmarks) != 1:
                 print("error, no single face")
-                resize_and_show(cv2.cvtColor(image.numpy_view(), cv2.COLOR_RGBA2BGRA))
-                cv2.waitKey(0)
+                resize_and_show(cv2.cvtColor(image.numpy_view(), cv2.COLOR_RGBA2BGRA), filename)
+                error.append(filename)
                 continue
 
             output_image = image.numpy_view()
@@ -136,9 +145,13 @@ if __name__ == "__main__":
 
             resized = cv2.resize(img_translation, (DESIRED_WIDTH + 2 * BUFFER['x'], DESIRED_HEIGHT + 2 * BUFFER['y']))
             img_BGRA = cv2.cvtColor(resized, cv2.COLOR_RGBA2BGRA)
-            cv2.imwrite("output/{image_name}.png".format(image_name=filename[6:-4]), img_BGRA)
-            cv2.imshow("image", img_BGRA)
-            cv2.waitKey(0)
+            cv2.imwrite("{path}/{image_name}.png".format(path=output_path, image_name=filename[6:-4]), img_BGRA)
+    #         cv2.imshow("image", img_BGRA)
+    #         cv2.waitKey(0)
 
-    # closing all open windows
+
+    # cleanup
+    np.savetxt(output_path+"/errors.csv", error, delimiter =", ", fmt ='% s')
+    # # closing all open windows
+    cv2.waitKey(0)
     cv2.destroyAllWindows()
