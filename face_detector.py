@@ -46,6 +46,7 @@ if __name__ == "__main__":
     DESIRED_WIDTH = 400
     desired_ratio = DESIRED_WIDTH / DESIRED_HEIGHT
     IDEAL_INTER_IRIS_RATIO = 0.25
+    IDEAL_INTER_IRIS_POSITION = {'x': 0.5, 'y': 0.33}  # (relative x,y of where center between eyes should be)
 
     ext = ['png', 'jpg']
     path = 'input/'
@@ -114,7 +115,13 @@ if __name__ == "__main__":
             ideal_gap = ideal_width * IDEAL_INTER_IRIS_RATIO
             scaling_factor = ideal_gap / current_gap
 
-            translation_matrix = np.float32([[scaling_factor, 0, 10], [0, scaling_factor, 10]])
+            # find translation so that between eyes is at desired location
+            inter_iris_pos = np.mean(np.array(iris_np)*scaling_factor, axis=0)
+            ideal_inter_iris_pos = np.array([IDEAL_INTER_IRIS_POSITION['x']*ideal_width,
+                                             IDEAL_INTER_IRIS_POSITION['y']*ideal_height])
+            shift = ideal_inter_iris_pos - inter_iris_pos
+
+            translation_matrix = np.float32([[scaling_factor, 0, shift[0]], [0, scaling_factor, shift[1]]])
             num_rows, num_cols = blank_image.shape[:2]
             img_translation = cv2.warpAffine(blank_image, translation_matrix, (num_cols, num_rows))
 
