@@ -8,6 +8,7 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 import cv2
 import glob
+import math
 
 def draw_landmarks_on_image(rgb_image, detection_result):
     face_landmarks_list = detection_result.face_landmarks
@@ -47,6 +48,14 @@ def draw_landmarks_on_image(rgb_image, detection_result):
 
     return annotated_image
 
+def resize_and_show(image):
+    h, w = image.shape[:2]
+    if h < w:
+        img = cv2.resize(image, (DESIRED_WIDTH, math.floor(h / (w / DESIRED_WIDTH))))
+    else:
+        img = cv2.resize(image, (math.floor(w / (h / DESIRED_HEIGHT)), DESIRED_HEIGHT))
+    cv2.imshow('image', img)
+
 
 def plot_face_blendshapes_bar_graph(face_blendshapes):
     # Extract the face blendshapes category names and scores.
@@ -72,6 +81,11 @@ def plot_face_blendshapes_bar_graph(face_blendshapes):
 
 
 if __name__ == "__main__":
+
+    # Height and width that will be used by the model
+    DESIRED_HEIGHT = 480
+    DESIRED_WIDTH = 480
+
     ext = ['png', 'jpg']
     path = 'input/'
     filenames = []
@@ -86,22 +100,20 @@ if __name__ == "__main__":
     with vision.FaceLandmarker.create_from_options(options) as detector:
         for filename in filenames:
             # STEP 3: Load the input image.
+            # using PIL as it reads EXIF properly
             pil_img = Image.open(filename)
             # img_cv = cv2.imread(filename, cv2.IMREAD_ANYCOLOR)
             pil_img = ImageOps.exif_transpose(pil_img)
-            img_array = np.asarray(pil_img)
+            img_array = np.asarray(pil_img.convert('RGBA'))
             # treat as image with transparency or not
-            if pil_img.mode == 'RGBA':
-                image = mp.Image(image_format=mp.ImageFormat.SRGBA, data=img_array)
-            else:
-                image = mp.Image(image_format=mp.ImageFormat.SRGB, data=img_array)
+            image = mp.Image(image_format=mp.ImageFormat.SRGBA, data=img_array)
 
             # STEP 4: Detect face landmarks from the input image.
             detection_result = detector.detect(image)
 
             # STEP 5: Process the detection result. In this case, visualize it.
-            annotated_image = draw_landmarks_on_image(image.numpy_view()[:,:,:3], detection_result)
-            cv2.imshow(filename, cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR))
+            annotated_image = draw_landmarks_on_image(image.numpy_view()[:,:,:3], detection_result) # can only draw on rgb images
+            resize_and_show(cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR))
             cv2.waitKey(0)
 
     # closing all open windows
