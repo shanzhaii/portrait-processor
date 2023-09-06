@@ -10,46 +10,6 @@ import cv2
 import glob
 import math
 
-def draw_landmarks_on_image(rgb_image, detection_result):
-    face_landmarks_list = detection_result.face_landmarks
-    annotated_image = np.copy(rgb_image)
-
-    # Loop through the detected faces to visualize.
-    if len(face_landmarks_list) != 1:
-        print("error, not single face")
-    for idx in range(len(face_landmarks_list)):
-        face_landmarks = face_landmarks_list[idx]
-
-        # Draw the face landmarks.
-        face_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
-        face_landmarks_proto.landmark.extend([
-            landmark_pb2.NormalizedLandmark(x=landmark.x, y=landmark.y, z=landmark.z) for landmark in face_landmarks
-        ])
-
-        solutions.drawing_utils.draw_landmarks(
-            image=annotated_image,
-            landmark_list=face_landmarks_proto,
-            connections=mp.solutions.face_mesh.FACEMESH_TESSELATION,
-            landmark_drawing_spec=None,
-            connection_drawing_spec=mp.solutions.drawing_styles
-            .get_default_face_mesh_tesselation_style())
-        solutions.drawing_utils.draw_landmarks(
-            image=annotated_image,
-            landmark_list=face_landmarks_proto,
-            connections=mp.solutions.face_mesh.FACEMESH_CONTOURS,
-            landmark_drawing_spec=None,
-            connection_drawing_spec=mp.solutions.drawing_styles
-            .get_default_face_mesh_contours_style())
-        solutions.drawing_utils.draw_landmarks(
-            image=annotated_image,
-            landmark_list=face_landmarks_proto,
-            connections=mp.solutions.face_mesh.FACEMESH_IRISES,
-            landmark_drawing_spec=None,
-            connection_drawing_spec=mp.solutions.drawing_styles
-            .get_default_face_mesh_iris_connections_style())
-
-    return annotated_image
-
 def resize_and_show(image):
     h, w = image.shape[:2]
     if h < w:
@@ -57,6 +17,24 @@ def resize_and_show(image):
     else:
         img = cv2.resize(image, (math.floor(w / (h / DESIRED_HEIGHT)), DESIRED_HEIGHT))
     cv2.imshow('image', img)
+
+def _normalized_to_pixel_coordinates(
+        normalized_x: float, normalized_y: float, image_width: int,
+        image_height: int):
+    """Converts normalized value pair to pixel coordinates."""
+
+    # Checks if the float value is between 0 and 1.
+    def is_valid_normalized_value(value: float) -> bool:
+        return (value > 0 or math.isclose(0, value)) and (value < 1 or
+                                                          math.isclose(1, value))
+
+    if not (is_valid_normalized_value(normalized_x) and
+            is_valid_normalized_value(normalized_y)):
+        # TODO: Draw coordinates even if it's outside of the image bounds.
+        return None
+    x_px = min(math.floor(normalized_x * image_width), image_width - 1)
+    y_px = min(math.floor(normalized_y * image_height), image_height - 1)
+    return x_px, y_px
 
 
 if __name__ == "__main__":
@@ -91,8 +69,25 @@ if __name__ == "__main__":
             detection_result = detector.detect(image)
 
             # STEP 5: Process the detection result. In this case, visualize it.
-            annotated_image = draw_landmarks_on_image(image.numpy_view()[:,:,:3], detection_result) # can only draw on rgb images
-            resize_and_show(cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR))
+            # annotated_image = draw_landmarks_on_image(image.numpy_view()[:,:,:3], detection_result) # can only draw on rgb images
+            if len(detection_result.face_landmarks) != 1:
+                print("error, not single face")
+                resize_and_show(cv2.cvtColor(image.numpy_view(), cv2.COLOR_RGB2BGR))
+                cv2.waitKey(0)
+                continue
+
+            output_image = image.numpy_view()
+            iris1 = detection_result.face_landmarks[0][468]
+            iris2 = detection_result.face_landmarks[0][473]
+
+            for poi in [iris1, iris2]:
+                # Draw a white dot with black border to denote the point of interest
+                thickness, radius = 6, -1
+                keypoint_px = _normalized_to_pixel_coordinates(poi.x, poi.y, image.width, image.height)
+                cv2.circle(output_image, keypoint_px, thickness + 5, (0, 0, 0), radius)
+                cv2.circle(output_image, keypoint_px, thickness, (255, 255, 255), radius)
+
+            resize_and_show(cv2.cvtColor(output_image, cv2.COLOR_RGB2BGR))
             cv2.waitKey(0)
 
     # closing all open windows
