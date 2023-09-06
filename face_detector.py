@@ -40,8 +40,9 @@ def _normalized_to_pixel_coordinates(
 if __name__ == "__main__":
 
     # Height and width that will be used by the model
-    DESIRED_HEIGHT = 480
-    DESIRED_WIDTH = 480
+    DESIRED_HEIGHT = 472
+    DESIRED_WIDTH = 400
+    desired_ratio = DESIRED_WIDTH / DESIRED_HEIGHT
 
     ext = ['png', 'jpg']
     path = 'input/'
@@ -71,7 +72,7 @@ if __name__ == "__main__":
             # STEP 5: Process the detection result. In this case, visualize it.
             # annotated_image = draw_landmarks_on_image(image.numpy_view()[:,:,:3], detection_result) # can only draw on rgb images
             if len(detection_result.face_landmarks) != 1:
-                print("error, not single face")
+                print("error, no single face")
                 resize_and_show(cv2.cvtColor(image.numpy_view(), cv2.COLOR_RGB2BGR))
                 cv2.waitKey(0)
                 continue
@@ -87,7 +88,30 @@ if __name__ == "__main__":
                 cv2.circle(output_image, keypoint_px, thickness + 5, (0, 0, 0), radius)
                 cv2.circle(output_image, keypoint_px, thickness, (255, 255, 255), radius)
 
-            resize_and_show(cv2.cvtColor(output_image, cv2.COLOR_RGB2BGR))
+            # place image in larger image of correct ratio
+
+            current_ratio = image.width / image.height
+            if current_ratio > desired_ratio:
+                # image too wide: need to add height
+                ideal_width = image.width
+                ideal_height = int(image.width / desired_ratio)
+                assert ideal_height > ideal_width
+            else:
+                ideal_height = image.height
+                ideal_width = int(ideal_height * desired_ratio)
+                assert ideal_height > ideal_width
+
+            blank_pixel = np.uint8([0,0,0,0])
+            blank_image = np.tile(blank_pixel, (ideal_height, ideal_width, 1))
+            blank_image[:output_image.shape[0], :output_image.shape[1], :output_image.shape[2]] = output_image
+
+            # translation_matrix = np.float32([[0.5,0,10],[0,0.5,10]])
+            # num_rows, num_cols = output_image.shape[:2]
+            # img_translation = cv2.warpAffine(output_image, translation_matrix, (num_cols, num_rows))
+
+            img_BGRA = cv2.cvtColor(blank_image, cv2.COLOR_RGBA2BGRA)
+            resize_and_show(img_BGRA)
+            cv2.imwrite("output/{image_name}.png".format(image_name=filename[6:-4]), img_BGRA)
             cv2.waitKey(0)
 
     # closing all open windows
