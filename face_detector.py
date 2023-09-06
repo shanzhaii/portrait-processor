@@ -45,8 +45,8 @@ if __name__ == "__main__":
     DESIRED_HEIGHT = 472
     DESIRED_WIDTH = 400
     desired_ratio = DESIRED_WIDTH / DESIRED_HEIGHT
-    IDEAL_INTER_IRIS_RATIO = 0.25
-    IDEAL_INTER_IRIS_POSITION = {'x': 0.5, 'y': 0.33}  # (relative x,y of where center between eyes should be)
+    IDEAL_INTER_IRIS_RATIO = 0.24
+    IDEAL_INTER_IRIS_POSITION = {'x': 0.5, 'y': 0.45}  # (relative x,y of where center between eyes should be)
 
     ext = ['png', 'jpg']
     path = 'input/'
@@ -77,7 +77,7 @@ if __name__ == "__main__":
             # annotated_image = draw_landmarks_on_image(image.numpy_view()[:,:,:3], detection_result) # can only draw on rgb images
             if len(detection_result.face_landmarks) != 1:
                 print("error, no single face")
-                resize_and_show(cv2.cvtColor(image.numpy_view(), cv2.COLOR_RGB2BGR))
+                resize_and_show(cv2.cvtColor(image.numpy_view(), cv2.COLOR_RGBA2BGRA))
                 cv2.waitKey(0)
                 continue
 
@@ -91,8 +91,9 @@ if __name__ == "__main__":
                 thickness, radius = 6, -1
                 keypoint_px = _normalized_to_pixel_coordinates(poi.x, poi.y, image.width, image.height)
                 iris_np.append(np.array(keypoint_px))
-                cv2.circle(output_image, keypoint_px, thickness + 5, (0, 0, 0), radius)
-                cv2.circle(output_image, keypoint_px, thickness, (255, 255, 255), radius)
+                # DEBUG ADD CIRCLE
+                # cv2.circle(output_image, keypoint_px, thickness + 5, (0, 0, 0), radius)
+                # cv2.circle(output_image, keypoint_px, thickness, (255, 255, 255), radius)
 
             # place image in larger image of correct ratio
             current_ratio = image.width / image.height
@@ -125,9 +126,10 @@ if __name__ == "__main__":
             num_rows, num_cols = blank_image.shape[:2]
             img_translation = cv2.warpAffine(blank_image, translation_matrix, (num_cols, num_rows))
 
-            img_BGRA = cv2.cvtColor(img_translation, cv2.COLOR_RGBA2BGRA)
-            resize_and_show(img_BGRA)
+            resized = cv2.resize(img_translation, (DESIRED_WIDTH, DESIRED_HEIGHT))
+            img_BGRA = cv2.cvtColor(resized, cv2.COLOR_RGBA2BGRA)
             cv2.imwrite("output/{image_name}.png".format(image_name=filename[6:-4]), img_BGRA)
+            cv2.imshow("image", img_BGRA)
             cv2.waitKey(0)
 
     # closing all open windows
