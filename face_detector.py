@@ -47,6 +47,7 @@ if __name__ == "__main__":
     desired_ratio = DESIRED_WIDTH / DESIRED_HEIGHT
     IDEAL_INTER_IRIS_RATIO = 0.24
     IDEAL_INTER_IRIS_POSITION = {'x': 0.5, 'y': 0.45}  # (relative x,y of where center between eyes should be)
+    BUFFER = {'x': 50, 'y': 50} # number of pixels to add on each side as buffer
 
     ext = ['png', 'jpg']
     path = 'input/'
@@ -107,8 +108,15 @@ if __name__ == "__main__":
                 ideal_width = int(ideal_height * desired_ratio)
                 assert ideal_height > ideal_width
 
+            ideal_to_final_ratio = ideal_height / DESIRED_HEIGHT
+
+            buffer_width = int(ideal_to_final_ratio * BUFFER['x'])
+            buffer_height = int(ideal_to_final_ratio * BUFFER['y'])
+
             blank_pixel = np.uint8([0, 0, 0, 0])
-            blank_image = np.tile(blank_pixel, (ideal_height, ideal_width, 1))
+            total_width = ideal_width + 2 * buffer_width
+            total_height = ideal_height + 2 * buffer_height
+            blank_image = np.tile(blank_pixel, (total_height, total_width, 1))
             blank_image[:output_image.shape[0], :output_image.shape[1], :output_image.shape[2]] = output_image
 
             # find scale for good inter iris gap
@@ -120,13 +128,13 @@ if __name__ == "__main__":
             inter_iris_pos = np.mean(np.array(iris_np)*scaling_factor, axis=0)
             ideal_inter_iris_pos = np.array([IDEAL_INTER_IRIS_POSITION['x']*ideal_width,
                                              IDEAL_INTER_IRIS_POSITION['y']*ideal_height])
-            shift = ideal_inter_iris_pos - inter_iris_pos
+            shift = ideal_inter_iris_pos - inter_iris_pos + np.array([buffer_width, buffer_height])
 
             translation_matrix = np.float32([[scaling_factor, 0, shift[0]], [0, scaling_factor, shift[1]]])
             num_rows, num_cols = blank_image.shape[:2]
             img_translation = cv2.warpAffine(blank_image, translation_matrix, (num_cols, num_rows))
 
-            resized = cv2.resize(img_translation, (DESIRED_WIDTH, DESIRED_HEIGHT))
+            resized = cv2.resize(img_translation, (DESIRED_WIDTH + 2 * BUFFER['x'], DESIRED_HEIGHT + 2 * BUFFER['y']))
             img_BGRA = cv2.cvtColor(resized, cv2.COLOR_RGBA2BGRA)
             cv2.imwrite("output/{image_name}.png".format(image_name=filename[6:-4]), img_BGRA)
             cv2.imshow("image", img_BGRA)
