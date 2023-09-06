@@ -10,6 +10,7 @@ import cv2
 import glob
 import math
 
+
 def resize_and_show(image):
     h, w = image.shape[:2]
     if h < w:
@@ -17,6 +18,7 @@ def resize_and_show(image):
     else:
         img = cv2.resize(image, (math.floor(w / (h / DESIRED_HEIGHT)), DESIRED_HEIGHT))
     cv2.imshow('image', img)
+
 
 def _normalized_to_pixel_coordinates(
         normalized_x: float, normalized_y: float, image_width: int,
@@ -43,6 +45,7 @@ if __name__ == "__main__":
     DESIRED_HEIGHT = 472
     DESIRED_WIDTH = 400
     desired_ratio = DESIRED_WIDTH / DESIRED_HEIGHT
+    IDEAL_INTER_IRIS_RATIO = 0.25
 
     ext = ['png', 'jpg']
     path = 'input/'
@@ -80,16 +83,17 @@ if __name__ == "__main__":
             output_image = image.numpy_view()
             iris1 = detection_result.face_landmarks[0][468]
             iris2 = detection_result.face_landmarks[0][473]
+            iris_np = []
 
             for poi in [iris1, iris2]:
                 # Draw a white dot with black border to denote the point of interest
                 thickness, radius = 6, -1
                 keypoint_px = _normalized_to_pixel_coordinates(poi.x, poi.y, image.width, image.height)
+                iris_np.append(np.array(keypoint_px))
                 cv2.circle(output_image, keypoint_px, thickness + 5, (0, 0, 0), radius)
                 cv2.circle(output_image, keypoint_px, thickness, (255, 255, 255), radius)
 
             # place image in larger image of correct ratio
-
             current_ratio = image.width / image.height
             if current_ratio > desired_ratio:
                 # image too wide: need to add height
@@ -101,15 +105,20 @@ if __name__ == "__main__":
                 ideal_width = int(ideal_height * desired_ratio)
                 assert ideal_height > ideal_width
 
-            blank_pixel = np.uint8([0,0,0,0])
+            blank_pixel = np.uint8([0, 0, 0, 0])
             blank_image = np.tile(blank_pixel, (ideal_height, ideal_width, 1))
             blank_image[:output_image.shape[0], :output_image.shape[1], :output_image.shape[2]] = output_image
 
-            # translation_matrix = np.float32([[0.5,0,10],[0,0.5,10]])
-            # num_rows, num_cols = output_image.shape[:2]
-            # img_translation = cv2.warpAffine(output_image, translation_matrix, (num_cols, num_rows))
+            # find scale for good inter iris gap
+            current_gap = np.linalg.norm(iris_np[0] - iris_np[1])
+            ideal_gap = ideal_width * IDEAL_INTER_IRIS_RATIO
+            scaling_factor = ideal_gap / current_gap
 
-            img_BGRA = cv2.cvtColor(blank_image, cv2.COLOR_RGBA2BGRA)
+            translation_matrix = np.float32([[scaling_factor, 0, 10], [0, scaling_factor, 10]])
+            num_rows, num_cols = blank_image.shape[:2]
+            img_translation = cv2.warpAffine(blank_image, translation_matrix, (num_cols, num_rows))
+
+            img_BGRA = cv2.cvtColor(img_translation, cv2.COLOR_RGBA2BGRA)
             resize_and_show(img_BGRA)
             cv2.imwrite("output/{image_name}.png".format(image_name=filename[6:-4]), img_BGRA)
             cv2.waitKey(0)
