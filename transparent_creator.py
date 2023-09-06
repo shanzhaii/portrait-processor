@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
     # Create the interactive segmenter
     with vision.InteractiveSegmenter.create_from_options(options) as segmenter:
-        for filename in filenames[:1]:
+        for filename in filenames:
             # print(img[7:-4])
             # Create the MediaPipe image file that will be segmented
             # using PIL as it reads EXIF properly
@@ -87,4 +87,5 @@ if __name__ == "__main__":
             if mask_int.shape[:-1] != b_channel.shape:
                 mask_int = np.swapaxes(mask_int, 0, 1)
             img_BGRA = cv2.merge((b_channel, g_channel, r_channel, mask_int))
-            cv2.imwrite("{path}/{image_name}.png".format(path=output_path, image_name=filename[6:-4]), img_BGRA)
+            image_name = filename.split("\\")[1].split(".")[0]
+            cv2.imwrite("{path}/{image_name}.png".format(path=output_path, image_name=image_name), img_BGRA)

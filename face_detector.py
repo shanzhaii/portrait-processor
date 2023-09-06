@@ -144,7 +144,8 @@ if __name__ == "__main__":
 
             resized = cv2.resize(img_translation, (DESIRED_WIDTH + 2 * BUFFER['x'], DESIRED_HEIGHT + 2 * BUFFER['y']))
             img_BGRA = cv2.cvtColor(resized, cv2.COLOR_RGBA2BGRA)
-            cv2.imwrite("{path}/{image_name}.png".format(path=output_path, image_name=filename[6:-4]), img_BGRA)
+            image_name = filename.split("\\")[1].split(".")[0]
+            cv2.imwrite("{path}/{image_name}.png".format(path=output_path, image_name=image_name), img_BGRA)
     #         cv2.imshow("image", img_BGRA)
     #         cv2.waitKey(0)
 
