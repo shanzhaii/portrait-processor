@@ -39,16 +39,15 @@ def _normalized_to_pixel_coordinates(
     y_px = min(math.floor(normalized_y * image_height), image_height - 1)
     return x_px, y_px
 
+# Height and width that will be used by the model
+DESIRED_HEIGHT = 472
+DESIRED_WIDTH = 400
+BUFFER = {'x': 50, 'y': 50} # number of pixels to add on each side as buffer
+IDEAL_INTER_IRIS_RATIO = 0.24
+IDEAL_INTER_IRIS_POSITION = {'x': 0.5, 'y': 0.45}  # (relative x,y of where center between eyes should be)
 
 if __name__ == "__main__":
-
-    # Height and width that will be used by the model
-    DESIRED_HEIGHT = 472
-    DESIRED_WIDTH = 400
     desired_ratio = DESIRED_WIDTH / DESIRED_HEIGHT
-    IDEAL_INTER_IRIS_RATIO = 0.24
-    IDEAL_INTER_IRIS_POSITION = {'x': 0.5, 'y': 0.45}  # (relative x,y of where center between eyes should be)
-    BUFFER = {'x': 50, 'y': 50} # number of pixels to add on each side as buffer
 
     ext = ['png', 'jpg']
     path = 'input/'
@@ -59,7 +58,7 @@ if __name__ == "__main__":
     error = []
 
     # create output path
-    output_path = 'cropped_images'
+    output_path = 'output_cropped_images'
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
